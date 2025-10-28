@@ -1,26 +1,26 @@
 import { Router } from "express";
-import { authMiddleware, requireRole } from "../middlewares/auth.middleware.js";
+import { adminAuth, waiterTokenAuth } from "../middlewares/auth.middleware.js";
 import {
   listProducts,
   getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
+  searchProductsByName,
+  filterProductsByCategory,
 } from "../controllers/products.controller.js";
 
 const router = Router();
 
-router.get("/", authMiddleware, listProducts);
-router.get("/:id", authMiddleware, getProductById);
-router.get("/search/:term", authMiddleware, searchProductsByName);
-router.get("/category/:category", authMiddleware, filterProductsByCategory);
+
+router.get("/", waiterTokenAuth, listProducts);
+router.get("/:id", waiterTokenAuth, getProductById);
+router.get("/search/:term", waiterTokenAuth, searchProductsByName);
+router.get("/category/:category", waiterTokenAuth, filterProductsByCategory);
 
 
-router.post("/", authMiddleware, requireRole("administrator"), createProduct);
-router.put("/:id", authMiddleware, requireRole("administrator"), updateProduct);
-router.delete("/:id", authMiddleware, requireRole("administrator"), deleteProduct);
-
-
-
+router.post("/", adminAuth, createProduct);
+router.put("/:id", adminAuth, updateProduct);
+router.delete("/:id", adminAuth, deleteProduct);
 
 export default router;

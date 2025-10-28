@@ -4,19 +4,14 @@ import {
   markOrderInProgress,
   markOrderReady,
   cancelOrderFromKitchen,
-} from "../controllers/kitchen.controller.js";
-import { verifyToken, authorizeRoles } from "../middleware/authMiddleware.js";
+} from "../controllers/kitchen.controllers.js";
 
 const router = express.Router();
 
-router.use(verifyToken);
 
-router.get("/", authorizeRoles(["kitchen", "admin"]), getKitchenOrders);
-
-router.put("/:orderId/in-progress", authorizeRoles(["kitchen", "admin"]), markOrderInProgress);
-
-router.put("/:orderId/ready", authorizeRoles(["kitchen", "admin"]), markOrderReady);
-
-router.put("/:orderId/cancel", authorizeRoles(["kitchen", "admin"]), cancelOrderFromKitchen);
+router.get("/", getKitchenOrders);
+router.put("/:orderId/in-progress", markOrderInProgress);
+router.put("/:orderId/ready", markOrderReady);
+router.put("/:orderId/cancel", cancelOrderFromKitchen);
 
 export default router;

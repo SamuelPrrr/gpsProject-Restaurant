@@ -4,23 +4,20 @@ import {
   listUsers,
   updateUser,
   deleteUser,
+  getUserById,
+  searchUsers,
 } from "../controllers/users.controller.js";
-import { authMiddleware, requireRole } from "../middlewares/auth.middleware.js";
+import { adminAuth } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-router.get("/", authMiddleware, requireRole("administrator"), listUsers);
+router.use(adminAuth);
 
-router.post("/", authMiddleware, requireRole("administrator"), createUser);
-
-router.put("/:id", authMiddleware, requireRole("administrator"), updateUser);
-
-router.delete("/:id", authMiddleware, requireRole("administrator"), deleteUser);
-
-router.get("/:id", authMiddleware, requireRole("administrator"), getUserById);
-
-router.get("/search/:term", authMiddleware, requireRole("administrator"), searchUsers);
-
-
+router.get("/", listUsers);
+router.post("/", createUser);
+router.put("/:id", updateUser);
+router.delete("/:id", deleteUser);
+router.get("/:id", getUserById);
+router.get("/search/:term", searchUsers);
 
 export default router;

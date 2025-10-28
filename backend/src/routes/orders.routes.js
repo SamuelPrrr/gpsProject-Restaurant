@@ -6,7 +6,7 @@ import {
   updateOrder,
   deleteOrder,
 } from "../controllers/orders.controller.js";
-import { waiterTokenAuth, adminAuth } from "../middleware/authMiddleware.js";
+import { waiterTokenAuth, adminAuth } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
