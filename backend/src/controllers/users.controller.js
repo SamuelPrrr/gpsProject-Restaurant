@@ -4,18 +4,6 @@ import { db, admin } from "../services/firebaseAdmin.js";
 
 const USERS = "users";
 
-//R1.2
-export async function listUsers(req, res) {
-  try {
-    const snapshot = await db.collection(USERS).get();
-    const users = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-    return res.json(users);
-  } catch (err) {
-    console.error("listUsers error:", err);
-    return res.status(500).json({ message: "Error al listar usuarios" });
-  }
-}
-
 // R1.1
 export async function createUser(req, res) {
   try {
@@ -69,6 +57,53 @@ export async function createUser(req, res) {
     return res.status(500).json({ message: "Error al crear usuario" });
   }
 }
+
+//R1.2
+export async function listUsers(req, res) {
+  try {
+    const snapshot = await db.collection(USERS).get();
+    const users = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    return res.json(users);
+  } catch (err) {
+    console.error("listUsers error:", err);
+    return res.status(500).json({ message: "Error al listar usuarios" });
+  }
+}
+
+export async function getUserById(req, res) {
+  try {
+    const id = req.params.id;
+    const doc = await db.collection(USERS).doc(id).get();
+
+    if (!doc.exists) return res.status(404).json({ message: "Usuario no encontrado" });
+
+    return res.json({ id: doc.id, ...doc.data() });
+  } catch (err) {
+    console.error("getUserById error:", err);
+    return res.status(500).json({ message: "Error al obtener usuario" });
+  }
+}
+
+export async function searchUsers(req, res) {
+  try {
+    const term = req.params.term.toLowerCase();
+    const snapshot = await db.collection(USERS).get();
+
+    const results = snapshot.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((user) =>
+        (user.firstName?.toLowerCase().includes(term)) ||
+        (user.lastName?.toLowerCase().includes(term)) ||
+        (user.identifier?.toLowerCase().includes(term))
+      );
+
+    return res.json(results);
+  } catch (err) {
+    console.error("searchUsers error:", err);
+    return res.status(500).json({ message: "Error al buscar usuarios" });
+  }
+}
+
 
 // R1.3
 export async function updateUser(req, res) {

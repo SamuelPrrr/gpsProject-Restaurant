@@ -2,27 +2,27 @@ import { db, admin } from "../services/firebaseAdmin.js";
 
 const COLLECTION = "orders";
 
+// ✅ RF3.1 Crear pedido
 export async function createOrder(req, res) {
   try {
-    const { table, products, notes } = req.body;
+    const { tableNumber, items, observations } = req.body;
     const user = req.user;
 
-    if (!table || !products || !products.length) {
+    if (!tableNumber || !items?.length) {
       return res.status(400).json({ message: "Faltan datos del pedido" });
     }
 
-    const total = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
-
+    const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
     const now = admin.firestore.FieldValue.serverTimestamp();
 
     const order = {
-      waiterId: user.uid || user.identifier,
-      waiterName: `${user.firstName || "Desconocido"} ${user.lastName || ""}`,
-      table,
-      products,
+      tableNumber,
+      waiterId: user.identifier,
+      waiterName: `${user.firstName} ${user.lastName}`,
+      items,
+      observations: observations || "",
       total,
-      status: "pendiente",
-      notes: notes || "",
+      status: "new",
       createdAt: now,
       updatedAt: now,
     };
@@ -30,7 +30,7 @@ export async function createOrder(req, res) {
     const ref = await db.collection(COLLECTION).add(order);
 
     return res.status(201).json({
-      message: "Pedido creado correctamente ✅",
+      message: "Pedido creado correctamente",
       id: ref.id,
       ...order,
     });
@@ -40,25 +40,19 @@ export async function createOrder(req, res) {
   }
 }
 
+// ✅ RF3.2 Listar pedidos
 export async function listOrders(req, res) {
   try {
     const user = req.user;
-    let snapshot;
+    let query = db.collection(COLLECTION).orderBy("createdAt", "desc");
 
     if (user.role === "waiter") {
-      snapshot = await db
-        .collection(COLLECTION)
-        .where("waiterId", "==", user.identifier)
-        .orderBy("createdAt", "desc")
-        .get();
-    } else {
-      snapshot = await db
-        .collection(COLLECTION)
-        .orderBy("createdAt", "desc")
-        .get();
+      query = query.where("waiterId", "==", user.identifier);
     }
 
-    const orders = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const snapshot = await query.get();
+    const orders = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
     return res.json(orders);
   } catch (err) {
     console.error("listOrders error:", err);
@@ -66,12 +60,14 @@ export async function listOrders(req, res) {
   }
 }
 
+// ✅ RF3.3 Obtener pedido por ID
 export async function getOrderById(req, res) {
   try {
     const id = req.params.id;
     const doc = await db.collection(COLLECTION).doc(id).get();
 
-    if (!doc.exists) return res.status(404).json({ message: "Pedido no encontrado" });
+    if (!doc.exists)
+      return res.status(404).json({ message: "Pedido no encontrado" });
 
     return res.json({ id: doc.id, ...doc.data() });
   } catch (err) {
@@ -80,6 +76,7 @@ export async function getOrderById(req, res) {
   }
 }
 
+// RF3.4 
 export async function updateOrder(req, res) {
   try {
     const id = req.params.id;
@@ -89,52 +86,66 @@ export async function updateOrder(req, res) {
     const ref = db.collection(COLLECTION).doc(id);
     const doc = await ref.get();
 
-    if (!doc.exists) return res.status(404).json({ message: "Pedido no encontrado" });
+    if (!doc.exists)
+      return res.status(404).json({ message: "Pedido no encontrado" });
 
     const order = doc.data();
 
-    if (user.role === "waiter" && order.status !== "pendiente") {
-      return res.status(403).json({ message: "No puedes modificar un pedido ya enviado" });
-    }
-
-    if (user.role === "kitchen" && !["pendiente", "en_preparacion"].includes(order.status)) {
-      return res.status(403).json({ message: "No puedes modificar un pedido ya listo o entregado" });
+    if (user.role === "waiter") {
+      if (order.waiterId !== user.identifier)
+        return res.status(403).json({ message: "No puedes modificar pedidos de otro mesero" });
+      if (order.status !== "new")
+        return res.status(403).json({ message: "Solo puedes modificar pedidos nuevos" });
     }
 
     const updateData = {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    if (changes.status) updateData.status = changes.status;
-    if (changes.notes !== undefined) updateData.notes = changes.notes;
-
-    if (user.role === "waiter" && changes.products && order.status === "pendiente") {
-      updateData.products = changes.products;
-      updateData.total = changes.products.reduce(
-        (sum, p) => sum + p.price * p.quantity,
+    if (changes.items && order.status === "new") {
+      updateData.items = changes.items;
+      updateData.total = changes.items.reduce(
+        (sum, i) => sum + i.price * i.quantity,
         0
       );
     }
 
+    if (changes.observations !== undefined)
+      updateData.observations = changes.observations;
+
     await ref.update(updateData);
-    return res.json({ message: "Pedido actualizado correctamente ✅" });
+    return res.json({ message: "Pedido actualizado correctamente" });
   } catch (err) {
     console.error("updateOrder error:", err);
     return res.status(500).json({ message: "Error al actualizar pedido" });
   }
 }
 
-
+// RF3.5 
 export async function deleteOrder(req, res) {
   try {
     const id = req.params.id;
+    const user = req.user;
+
     const ref = db.collection(COLLECTION).doc(id);
     const doc = await ref.get();
 
-    if (!doc.exists) return res.status(404).json({ message: "Pedido no encontrado" });
+    if (!doc.exists)
+      return res.status(404).json({ message: "Pedido no encontrado" });
+
+    const order = doc.data();
+
+    if (user.role !== "waiter")
+      return res.status(403).json({ message: "Solo los meseros pueden eliminar pedidos" });
+
+    if (order.waiterId !== user.identifier)
+      return res.status(403).json({ message: "No puedes eliminar pedidos de otro mesero" });
+
+    if (order.status !== "new")
+      return res.status(403).json({ message: "Solo se pueden eliminar pedidos nuevos" });
 
     await ref.delete();
-    return res.json({ message: "Pedido eliminado correctamente ✅" });
+    return res.json({ message: "Pedido eliminado correctamente" });
   } catch (err) {
     console.error("deleteOrder error:", err);
     return res.status(500).json({ message: "Error al eliminar pedido" });

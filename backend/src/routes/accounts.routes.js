@@ -5,24 +5,21 @@ import {
   closeAccount,
   getAccountHistory,
   modifyAccount,
-  cancelAccount
+  cancelAccount,
 } from "../controllers/accounts.controller.js";
 
 const router = Router();
 
-// RF4.1 
-router.get("/table/:tableNumber", authMiddleware, getAccountByTable);
+router.use(authMiddleware);
 
-// RF4.2 
-router.post("/table/:tableNumber/close", authMiddleware, closeAccount);
+router.get("/:tableNumber", getAccountByTable);
+ 
+router.put("/:tableNumber/close", closeAccount);
 
-// RF4.3 
-router.get("/history", authMiddleware, requireRole("administrator"), getAccountHistory);
+router.get("/", requireRole("administrator"), getAccountHistory);
 
-// RF4.4 
-router.patch("/table/:tableNumber", authMiddleware, modifyAccount);
+router.put("/:tableNumber/modify", modifyAccount);
 
-// RF4.5 
-router.delete("/folio/:folio/cancel", authMiddleware, requireRole("administrator"), cancelAccount);
+router.put("/:folio/cancel", requireRole("administrator"), cancelAccount);
 
 export default router;
