@@ -9,6 +9,9 @@ import authRoutes from "./routes/auth.routes.js";
 import usersRoutes from "./routes/users.routes.js";
 import productsRoutes from "./routes/products.routes.js";
 import ordersRoutes from "./routes/orders.routes.js";
+import accountsRoutes from "./routes/accounts.routes.js";
+import kitchenRoutes from "./routes/kitchen.routes.js";
+import ticketsRoutes from "./routes/tickets.routes.js";
 
 const app = express();
 
@@ -19,6 +22,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/products", productsRoutes);
 app.use("/api/orders", ordersRoutes);
+app.use("/api/accounts", accountsRoutes);
+app.use("/api/kitchen", kitchenRoutes);
+app.use("/api/tickets", ticketsRoutes);
 
 app.get("/", (req, res) => {
   res.send("Ey que paso, llego el q anima");
