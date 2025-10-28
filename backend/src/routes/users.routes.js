@@ -17,4 +17,10 @@ router.put("/:id", authMiddleware, requireRole("administrator"), updateUser);
 
 router.delete("/:id", authMiddleware, requireRole("administrator"), deleteUser);
 
+router.get("/:id", authMiddleware, requireRole("administrator"), getUserById);
+
+router.get("/search/:term", authMiddleware, requireRole("administrator"), searchUsers);
+
+
+
 export default router;

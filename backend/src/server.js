@@ -8,8 +8,7 @@ dotenv.config();
 import authRoutes from "./routes/auth.routes.js";
 import usersRoutes from "./routes/users.routes.js";
 import productsRoutes from "./routes/products.routes.js";
-
-
+import ordersRoutes from "./routes/orders.routes.js";
 
 const app = express();
 
@@ -19,6 +18,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/products", productsRoutes);
+app.use("/api/orders", ordersRoutes);
 
 app.get("/", (req, res) => {
   res.send("Ey que paso, llego el q anima");
@@ -27,8 +27,11 @@ app.get("/", (req, res) => {
 const PORT = process.env.PORT || 4000;
 
 import { ensureAdminExists } from "./services/initAdmin.js";
+import { initProducts } from "./init/initProducts.js";
+
 
 ensureAdminExists();
+await initProducts();
 
 app.listen(PORT, () => {
   console.log(`Ya jalo, eñ servidor anda corriendo en http://localhost:${PORT}`);
