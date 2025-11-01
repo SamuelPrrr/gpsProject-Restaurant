@@ -11,6 +11,28 @@ body {
   color: #1f2937;
 }
 
+/* Utility: hide native scrollbars but keep scrolling functionality
+   - Works in modern browsers (Chrome, Edge, Safari, Firefox)
+   - NOTE: Operating system settings (e.g., Windows "always show scrollbars") may still force scrollbars to be visible.
+*/
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+
+
+/* Smooth scrolling utility: enables smooth programmatic scroll and momentum on touch
+   - scroll-behavior: smooth affects programmatic scrolls (e.g., element.scrollIntoView)
+   - -webkit-overflow-scrolling: touch enables momentum scrolling on iOS devices
+   Note: wheel/device scrolling behavior is ultimately controlled by the browser/OS and hardware.
+*/
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
 @keyframes blob {
   0% {
     transform: translate(0px, 0px) scale(1);
@@ -36,4 +58,5 @@ body {
 
 .animation-delay-4000 {
   animation-delay: 4s;
+}
 }

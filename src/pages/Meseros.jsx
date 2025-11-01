@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
 import { Search, ShoppingCart, User, Calendar, LogOut, Eye, EyeOff, Edit2, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import BackButton from '@/components/ui/BackButton';
+// BackButton removed: authenticate-on-entry flow replaced by in-flow token prompt
 import VerOrdenes from '@/components/Meseros/verOrdenes';
 import CuentaMesa from '@/components/Meseros/cuentaMesa';
 import CerrarMesa from '@/components/Meseros/cerrarMesa';
 import SolicitarCancelacion from '@/components/Meseros/cancelacion';
 
 // Componente para Crear Orden (UI de Document 1 con funcionalidad de Document 2)
-function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable, customerName, setCustomerName, specialNotes, setSpecialNotes, total, showConfirmDialog, setShowConfirmDialog, orderNumber, setOrderNumber, token, waiterName, showTokenInHeader, setShowTokenInHeader, incrementQuantity, decrementQuantity, removeFromCart }) {
+function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable, customerName, setCustomerName, specialNotes, setSpecialNotes, total, showConfirmDialog, setShowConfirmDialog, orderNumber, setOrderNumber, token, setToken, waiterName, setWaiterName, showTokenInHeader, setShowTokenInHeader, incrementQuantity, decrementQuantity, removeFromCart }) {
   const [selectedCategory, setSelectedCategory] = useState('Bebidas');
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFlavor, setSelectedFlavor] = useState('');
+  const [tokenPromptVisible, setTokenPromptVisible] = useState(false);
+  const [localToken, setLocalToken] = useState(token || '');
+  const [tokenError, setTokenError] = useState('');
+  const [showTokenInput, setShowTokenInput] = useState(false);
 
   const categories = [
     { name: 'Bebidas', subcategories: ['Coca', 'Jarritos', 'Boing', 'Agua', 'Cerveza', 'Otros'] },
@@ -115,8 +119,23 @@ function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable,
       alert('Por favor ingrese el nombre del cliente');
       return;
     }
+    // Ask waiter for token before confirming the order
+    setTokenError('');
+    setLocalToken(token || '');
+    setTokenPromptVisible(true);
+  };
+
+  const confirmTokenAndProceed = () => {
+    if (!localToken || localToken.trim().length === 0) {
+      setTokenError('Por favor ingresa tu token');
+      return;
+    }
+    // Persist token and waiter name in parent
+    setToken(localToken);
+    setWaiterName('Mesero ' + localToken);
     setOrderNumber(`ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
     setShowConfirmDialog(true);
+    setTokenPromptVisible(false);
   };
 
   const confirmOrder = () => {
@@ -129,6 +148,41 @@ function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable,
 
   return (
     <>
+      {/* Token prompt modal shown when waiter clicks "Enviar Pedido a Cocina" */}
+      {tokenPromptVisible && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100
+        }}>
+          <div style={{ background: 'white', borderRadius: 12, padding: 24, width: '90%', maxWidth: 420 }}>
+            <h3 style={{ margin: 0, marginBottom: 12 }}>Confirma tu identidad</h3>
+            <p style={{ marginTop: 0, marginBottom: 12, color: '#666' }}>Ingresa tu token para confirmar el envío del pedido a cocina.</p>
+            <div style={{ position: 'relative', marginBottom: 8 }}>
+              <input
+                type={showTokenInput ? 'text' : 'password'}
+                value={localToken}
+                onChange={e => setLocalToken(e.target.value)}
+                placeholder="Token del mesero"
+                style={{ width: '100%', padding: '10px 36px 10px 10px', borderRadius: 6, border: '1px solid #e5e5e5' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowTokenInput(s => !s)}
+                aria-label={showTokenInput ? 'Ocultar token' : 'Mostrar token'}
+                style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 4 }}
+              >
+                {showTokenInput ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            {tokenError && <div style={{ color: 'red', fontSize: 12, marginBottom: 8 }}>{tokenError}</div>}
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button onClick={() => setTokenPromptVisible(false)} style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #e5e5e5', background: 'white' }}>Cancelar</button>
+              <button onClick={confirmTokenAndProceed} style={{ flex: 1, padding: 10, borderRadius: 8, background: '#000', color: '#fff', border: 'none' }}>Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de Confirmación */}
       {showConfirmDialog && (
         <div style={{
@@ -228,7 +282,7 @@ function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable,
 
       <div style={{ display: 'flex', height: 'calc(100vh - 140px)' }}>
         {/* Panel izquierdo - Productos */}
-        <div style={{
+        <div className="hide-scrollbar smooth-scroll" style={{
           flex: 1,
           background: '#ffffff',
           padding: '20px',
@@ -522,7 +576,7 @@ function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable,
         </div>
 
         {/* Panel derecho - Pedido */}
-        <div style={{
+        <div className="hide-scrollbar smooth-scroll" style={{
           width: '380px',
           background: '#ffffff',
           padding: '20px',
@@ -547,7 +601,7 @@ function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable,
             <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#666' }}>
               Mesa <span style={{ color: 'red' }}>*</span>
             </div>
-            <div style={{
+            <div className="hide-scrollbar smooth-scroll" style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(5, 1fr)',
               gap: '8px',
@@ -638,7 +692,7 @@ function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable,
           </div>
 
           {/* Items del carrito */}
-          <div style={{ flex: 1, overflowY: 'auto', marginBottom: '20px', minHeight: '200px' }}>
+          <div className="hide-scrollbar smooth-scroll" style={{ flex: 1, overflowY: 'auto', marginBottom: '20px', minHeight: '200px' }}>
             {cart.length === 0 ? (
               <div style={{
                 textAlign: 'center',
@@ -798,11 +852,10 @@ function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable,
 
 // Componente principal que preserva App Bar y Tab Bar
 export default function POSInterface() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Authentication-on-entry removed: token will be requested when confirming an order
   const [token, setToken] = useState('');
   const [waiterName, setWaiterName] = useState('');
   const [showTokenInHeader, setShowTokenInHeader] = useState(false);
-  const [showTokenInput, setShowTokenInput] = useState(false);
   const [activeTab, setActiveTab] = useState('crear-orden');
   const navigate = useNavigate();
   const [verOrdersSignal, setVerOrdersSignal] = useState(0);
@@ -833,64 +886,7 @@ export default function POSInterface() {
 
   const handleLogin = (e) => { e?.preventDefault(); if (token && token.length > 0) { setWaiterName('Mesero ' + token); setIsAuthenticated(true); } else { alert('Token inválido'); } };
 
-  // Persist waiter name in session so other pages (VerOrdenes) can validate permissions
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      sessionStorage.setItem('waiterName', waiterName);
-    } else {
-      sessionStorage.removeItem('waiterName');
-    }
-  }, [isAuthenticated, waiterName]);
-
-  // Restore existing waiter from session if present. Do NOT auto-create a dummy waiter on mount.
-  // This ensures the "Bienvenido Mesero" token prompt shows when navigating here from login.
-  React.useEffect(() => {
-    const existing = sessionStorage.getItem('waiterName');
-    if (existing) {
-      // restore session waiter (keep authenticated)
-      setWaiterName(existing);
-      setIsAuthenticated(true);
-    } else {
-      // No session: leave not authenticated so token input is displayed.
-      setIsAuthenticated(false);
-    }
-  }, []);
-
-  if (!isAuthenticated) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f5f5f5' }}>
-        <div style={{ width: 380, padding: 24, background: 'white', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          {/* Back button above the login card */}
-          <BackButton onClick={() => navigate('/')} label="Regresar" />
-          <h2 style={{ margin: '0 0 20px 0' }}>Bienvenido Mesero</h2>
-          <div>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Token</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showTokenInput ? 'text' : 'password'}
-                value={token}
-                onChange={e => setToken(e.target.value)}
-                placeholder="Ingresa tu token"
-                style={{ width: '100%', padding: '8px 40px 8px 8px', marginTop: 8, borderRadius: 6, border: '1px solid #e5e5e5' }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowTokenInput(s => !s)}
-                aria-label={showTokenInput ? 'Ocultar token' : 'Mostrar token'}
-                style={{
-                  position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                  background: 'transparent', border: 'none', cursor: 'pointer', padding: 4
-                }}
-              >
-                {showTokenInput ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-            <button onClick={handleLogin} style={{ width: '100%', marginTop: 16, padding: 12, borderRadius: 8, background: '#000', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Entrar</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // No initial login screen. The UI is available immediately; token will be requested when confirming an order.
 
   return (
     <div style={{ display: 'flex', height: '100vh', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', background: '#f5f5f5' }}>
@@ -904,7 +900,7 @@ export default function POSInterface() {
               <div style={{ fontSize: 12, color: '#666' }}>{showTokenInHeader ? `Token: ${token}` : 'Token: •••••'}</div>
             </div>
           </div>
-          <button onClick={() => { setIsAuthenticated(false); setToken(''); setWaiterName(''); }} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e5e5e5', background: 'white', cursor: 'pointer', fontWeight: 600 }}>Salir</button>
+          <button onClick={() => { setToken(''); setWaiterName(''); sessionStorage.removeItem('waiterName'); navigate('/'); }} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e5e5e5', background: 'white', cursor: 'pointer', fontWeight: 600 }}>Salir</button>
         </div>
 
         {/* Tab bar (preserve) */}
@@ -942,6 +938,8 @@ export default function POSInterface() {
             orderNumber={orderNumber}
             setOrderNumber={setOrderNumber}
             token={token}
+            setToken={setToken}
+            setWaiterName={setWaiterName}
             waiterName={waiterName}
             showTokenInHeader={showTokenInHeader}
             setShowTokenInHeader={setShowTokenInHeader}

@@ -34,6 +34,8 @@ const Login = () => {
           title: "Success",
           description: "Welcome back! You have been logged in successfully.",
         });
+        // Redirect to admin dashboard after successful login
+        navigate('/admin');
       } else {
         toast({
           title: "Login Failed",
