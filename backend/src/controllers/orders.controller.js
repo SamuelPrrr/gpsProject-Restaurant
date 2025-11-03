@@ -2,7 +2,7 @@ import { db, admin } from "../services/firebaseAdmin.js";
 
 const COLLECTION = "orders";
 
-// ✅ RF3.1 Crear pedido
+// RF3.1 
 export async function createOrder(req, res) {
   try {
     const { tableNumber, items, observations } = req.body;
@@ -40,7 +40,7 @@ export async function createOrder(req, res) {
   }
 }
 
-// ✅ RF3.2 Listar pedidos
+// RF3.2 
 export async function listOrders(req, res) {
   try {
     const user = req.user;
@@ -60,7 +60,7 @@ export async function listOrders(req, res) {
   }
 }
 
-// ✅ RF3.3 Obtener pedido por ID
+// RF3.3 
 export async function getOrderById(req, res) {
   try {
     const id = req.params.id;

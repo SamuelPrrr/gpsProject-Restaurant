@@ -4,7 +4,7 @@ export async function initProducts() {
   const snapshot = await db.collection("products").limit(1).get();
   if (!snapshot.empty) return; // Ya existen productos
 
-  console.log("🧱 Inicializando colección 'products'...");
+  console.log(" Inicializando colección 'products'...");
 
   const now = admin.firestore.FieldValue.serverTimestamp();
   const baseProducts = [

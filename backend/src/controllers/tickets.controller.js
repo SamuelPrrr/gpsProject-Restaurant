@@ -2,7 +2,7 @@ import { db } from "../services/firebaseAdmin.js";
 
 const ACCOUNTS = "accounts";
 
-// RF6.1 - Generar Ticket de Cuenta (OPCIONAL)
+// RF6.1 
 export async function generateTicket(req, res) {
   try {
     const { folio } = req.params;
@@ -39,10 +39,7 @@ export async function generateTicket(req, res) {
       cashReceived: account.cashReceived || null,
       change: account.change || null
     };
-
-    // Nota: La impresión física requiere configuración de hardware
-    // Esta respuesta solo devuelve los datos formateados
-
+    
     return res.json({
       message: "Cuenta guardada correctamente. Impresora no disponible",
       ticket,
