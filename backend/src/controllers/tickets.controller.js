@@ -1,4 +1,4 @@
-import { db } from "../services/firebaseAdmin.js";
+import { db } from "../server/firebaseAdmin.js";
 
 const ACCOUNTS = "accounts";
 

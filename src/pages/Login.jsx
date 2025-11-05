@@ -16,7 +16,7 @@ import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useAuth();
@@ -27,7 +27,7 @@ const Login = () => {
     setIsSubmitting(true);
 
     try {
-      const result = await login(email, password);
+      const result = await login(identifier, password);
 
       if (result.success) {
         toast({
@@ -73,7 +73,7 @@ const Login = () => {
             </div>
             <div className='space-y-1'>
               <h1 className='text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent'>
-                Comandas Fuck Yeah
+                El Alevin
               </h1>
               <p className='text-gray-600 text-xs flex items-center justify-center gap-1'>
                 <UtensilsCrossed className='w-3.5 h-3.5' />
@@ -95,13 +95,13 @@ const Login = () => {
               className='space-y-5 max-w-sm mx-auto'
             >
               <div className='space-y-2'>
-                <Label htmlFor='email' className='text-gray-700 font-medium text-sm'>Usuario</Label>
+                <Label htmlFor='identifier' className='text-gray-700 font-medium text-sm'>Usuario</Label>
                 <Input
-                  id='email'
-                  type='email'
-                  placeholder='tu@email.com'
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id='identifier'
+                  type='text'
+                  placeholder='tu-usuario'
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   className='h-11 border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 bg-white rounded-lg transition-all'
                   required
                 />
@@ -193,7 +193,7 @@ const Login = () => {
 
           {/* Footer */}
           <div className='mt-8 pt-6 border-t border-gray-100 text-center text-xs text-gray-500'>
-            <p>© 2025 RestaurantPOS. Todos los derechos reservados.</p>
+            <p>© 2025 El Alevin. Todos los derechos reservados.</p>
           </div>
         </CardContent>
       </Card>

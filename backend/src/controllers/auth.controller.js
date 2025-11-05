@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { db } from "../services/firebaseAdmin.js";
+import { db } from "../server/firebaseAdmin.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -48,6 +48,10 @@ export const loginAdmin = async (req, res) => {
       message: "Inicio de sesión exitoso ",
       token,
       user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        identifier: user.identifier,
         name: `${user.firstName} ${user.lastName}`,
         role: user.role,
         firstLogin: user.firstLogin || false,

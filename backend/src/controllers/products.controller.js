@@ -1,4 +1,4 @@
-import { db, admin } from "../services/firebaseAdmin.js";
+import { db, admin } from "../server/firebaseAdmin.js";
 
 const COLLECTION = "products";
 

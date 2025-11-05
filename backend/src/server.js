@@ -32,7 +32,7 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 4000;
 
-import { ensureAdminExists } from "./services/initAdmin.js";
+import { ensureAdminExists } from "./server/initAdmin.js";
 import { initProducts } from "./init/initProducts.js";
 
 

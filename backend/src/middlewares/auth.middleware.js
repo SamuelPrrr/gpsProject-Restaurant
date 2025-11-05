@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import { db } from "../services/firebaseAdmin.js";
+import { db } from "../server/firebaseAdmin.js";
 dotenv.config();
 
 

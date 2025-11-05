@@ -1,31 +1,75 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
+import { API_ENDPOINTS } from '@/config/api'
 
+//Creación del contexto
 const AuthContext = createContext(null)
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
+  const [token, setToken] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  const login = async (email, password) => {
-    // Implementación temporal - aquí integrarás tu API real
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        if (email && password) {
-          const userData = { email, name: 'Usuario' }
-          setUser(userData)
-          resolve({ success: true, user: userData })
-        } else {
-          resolve({ success: false, message: 'Credenciales inválidas' })
+  // Cargar token y usuario del localStorage al iniciar
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token')
+    const storedUser = localStorage.getItem('user')
+    
+    if (storedToken && storedUser) {
+      setToken(storedToken)
+      setUser(JSON.parse(storedUser))
+    }
+    setLoading(false)
+  }, [])
+
+  const login = async (identifier, password) => {
+    try {
+      const response = await fetch(API_ENDPOINTS.auth.login, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ identifier, password }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: data.message || 'Error al iniciar sesión',
         }
-      }, 500)
-    })
+      }
+
+      // Guardar token y usuario
+      setToken(data.token)
+      setUser(data.user)
+      
+      // Persistir en localStorage
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
+
+      return {
+        success: true,
+        user: data.user,
+      }
+    } catch (error) {
+      console.error('Error en login:', error)
+      return {
+        success: false,
+        message: 'Error de conexión con el servidor',
+      }
+    }
   }
 
   const logout = () => {
     setUser(null)
+    setToken(null)
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   )

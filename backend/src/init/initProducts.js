@@ -1,4 +1,4 @@
-import { db, admin } from "../services/firebaseAdmin.js";
+import { db, admin } from "../server/firebaseAdmin.js";
 
 export async function initProducts() {
   const snapshot = await db.collection("products").limit(1).get();

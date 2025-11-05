@@ -13,10 +13,10 @@ import {
 const router = Router();
 
 
-router.get("/", waiterTokenAuth, listProducts);
-router.get("/:id", waiterTokenAuth, getProductById);
-router.get("/search/:term", waiterTokenAuth, searchProductsByName);
-router.get("/category/:category", waiterTokenAuth, filterProductsByCategory);
+router.get("/", listProducts);
+router.get("/search/:term", searchProductsByName);
+router.get("/category/:category", filterProductsByCategory);
+router.get("/:id", getProductById);
 
 
 router.post("/", adminAuth, createProduct);

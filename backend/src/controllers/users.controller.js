@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
-import { db, admin } from "../services/firebaseAdmin.js";
+import { db, admin } from "../server/firebaseAdmin.js";
 
 const USERS = "users";
 
@@ -13,9 +13,9 @@ export async function createUser(req, res) {
       return res.status(400).json({ message: "Faltan campos obligatorios" });
     }
 
-    if (role === "administrator") {
-      return res.status(403).json({ message: "No está permitido crear nuevos administradores" });
-    }
+    // if (role === "administrator") {
+    //   return res.status(403).json({ message: "No está permitido crear nuevos administradores" });
+    // }
 
     const dup = await db
       .collection(USERS)
@@ -164,5 +164,98 @@ export async function deleteUser(req, res) {
   } catch (err) {
     console.error("deleteUser error:", err);
     return res.status(500).json({ message: "Error al eliminar usuario" });
+  }
+}
+
+// Get current user profile
+export async function getProfile(req, res) {
+  try {
+    const userId = req.user.uid; // JWT usa 'uid' no 'id'
+    const userRef = db.collection(USERS).doc(userId);
+    const snap = await userRef.get();
+
+    if (!snap.exists) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    const user = snap.data();
+    return res.json({
+      id: userId,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      identifier: user.identifier,
+      role: user.role,
+    });
+  } catch (err) {
+    console.error("getProfile error:", err);
+    return res.status(500).json({ message: "Error al obtener perfil" });
+  }
+}
+
+// Update admin profile
+export async function updateProfile(req, res) {
+  try {
+    const userId = req.user.uid; // JWT usa 'uid' no 'id'
+    const { firstName, lastName, currentPassword, newPassword } = req.body;
+
+    if (!firstName || !lastName) {
+      return res.status(400).json({ message: "Nombre y apellido son obligatorios" });
+    }
+
+    const userRef = db.collection(USERS).doc(userId);
+    const snap = await userRef.get();
+
+    if (!snap.exists) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    const user = snap.data();
+    const updateDoc = {
+      firstName,
+      lastName,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // If changing password
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: "Debe proporcionar la contraseña actual" });
+      }
+
+      if (!user.passwordHash) {
+        return res.status(400).json({ message: "No hay contraseña configurada para este usuario" });
+      }
+
+      // Verify current password
+      const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!isMatch) {
+        return res.status(401).json({ message: "Contraseña actual incorrecta" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "La nueva contraseña debe tener al menos 6 caracteres" });
+      }
+
+      // Hash new password
+      const saltRounds = 10;
+      const newHash = await bcrypt.hash(newPassword, saltRounds);
+      updateDoc.passwordHash = newHash;
+    }
+
+    await userRef.update(updateDoc);
+
+    return res.json({ 
+      message: "Perfil actualizado correctamente",
+      user: {
+        id: userId,
+        firstName,
+        lastName,
+        identifier: user.identifier,
+        role: user.role
+      }
+    });
+  } catch (err) {
+    console.error("updateProfile error:", err);
+    return res.status(500).json({ message: "Error al actualizar perfil" });
   }
 }
