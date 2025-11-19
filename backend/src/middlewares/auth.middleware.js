@@ -33,11 +33,10 @@ export async function waiterTokenAuth(req, res, next) {
       return res.status(401).json({ message: "Token de mesero no proporcionado" });
     }
 
-
     const snapshot = await db
       .collection("users")
       .where("role", "==", "waiter")
-      .where("accessToken", "==", token)
+      .where("token", "==", token)
       .limit(1)
       .get();
 

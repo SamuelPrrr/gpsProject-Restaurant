@@ -64,12 +64,12 @@ export default function ProductModal({
                 required
               >
                 <option value="">Selecciona una categoría</option>
-                <option value="bebidas">Bebidas</option>
-                <option value="entradas">Entradas</option>
-                <option value="platos_fuertes">Platos Fuertes</option>
-                <option value="postres">Postres</option>
-                <option value="ensaladas">Ensaladas</option>
-                <option value="sopas">Sopas</option>
+                <option value="Bebidas">Bebidas</option>
+                <option value="Entradas">Entradas</option>
+                <option value="Platos Fuertes">Platos Fuertes</option>
+                <option value="Postres">Postres</option>
+                <option value="Ensaladas">Ensaladas</option>
+                <option value="Sopas">Sopas</option>
               </select>
             </div>
           </div>

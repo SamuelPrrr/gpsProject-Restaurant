@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { Search, ShoppingCart, User, Calendar, LogOut, Eye, EyeOff, Edit2, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, ShoppingCart, User, Calendar, LogOut, Eye, EyeOff, Edit2, Trash2, Plus, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { API_ENDPOINTS } from '@/config/api';
 // BackButton removed: authenticate-on-entry flow replaced by in-flow token prompt
 import VerOrdenes from '@/components/Meseros/verOrdenes';
-import CuentaMesa from '@/components/Meseros/cuentaMesa';
-import CerrarMesa from '@/components/Meseros/cerrarMesa';
+import MesasActivas from '@/components/Meseros/mesasActivas';
 import SolicitarCancelacion from '@/components/Meseros/cancelacion';
 
 // Componente para Crear Orden (UI de Document 1 con funcionalidad de Document 2)
-function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable, customerName, setCustomerName, specialNotes, setSpecialNotes, total, showConfirmDialog, setShowConfirmDialog, orderNumber, setOrderNumber, token, setToken, waiterName, setWaiterName, showTokenInHeader, setShowTokenInHeader, incrementQuantity, decrementQuantity, removeFromCart }) {
-  const [selectedCategory, setSelectedCategory] = useState('Bebidas');
+function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable, customerName, setCustomerName, specialNotes, setSpecialNotes, total, showConfirmDialog, setShowConfirmDialog, orderNumber, setOrderNumber, token, setToken, waiterName, setWaiterName, showTokenInHeader, setShowTokenInHeader, incrementQuantity, decrementQuantity, removeFromCart, numberOfPeople, setNumberOfPeople }) {
+  const [selectedCategory, setSelectedCategory] = useState('Todas');
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFlavor, setSelectedFlavor] = useState('');
@@ -17,94 +17,77 @@ function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable,
   const [localToken, setLocalToken] = useState(token || '');
   const [tokenError, setTokenError] = useState('');
   const [showTokenInput, setShowTokenInput] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTables, setActiveTables] = useState([]);
 
-  const categories = [
-    { name: 'Bebidas', subcategories: ['Coca', 'Jarritos', 'Boing', 'Agua', 'Cerveza', 'Otros'] },
-    { name: 'Platillos', subcategories: ['Tacos', 'Tortas', 'Quesadillas'] },
-    { name: 'Postres', subcategories: ['Helados', 'Pasteles', 'Flanes'] }
-  ];
+  // Cargar mesas activas
+  useEffect(() => {
+    const fetchActiveTables = async () => {
+      try {
+        const response = await fetch(API_ENDPOINTS.tables);
+        if (response.ok) {
+          const data = await response.json();
+          setActiveTables(data);
+        }
+      } catch (error) {
+        console.error('Error al cargar mesas activas:', error);
+      }
+    };
+    fetchActiveTables();
+  }, []);
 
-  const products = {
-    'Coca': [
-      { name: 'Coca', price: 30, category: 'Bebidas' },
-      { name: 'Coca Zero', price: 30, category: 'Bebidas' }
-    ],
-    'Jarritos': [
-      { name: 'Jarritos Piña', price: 25, category: 'Bebidas' },
-      { name: 'Jarritos Tamarindo', price: 25, category: 'Bebidas' },
-      { name: 'Jarritos Limón', price: 25, category: 'Bebidas' },
-      { name: 'Jarritos Toronja', price: 25, category: 'Bebidas' },
-      { name: 'Jarritos Tutti Frutti', price: 25, category: 'Bebidas' },
-      { name: 'Jarritos Mandarina', price: 25, category: 'Bebidas' }
-    ],
-    'Boing': [
-      { name: 'Boing Guayaba', price: 30, category: 'Bebidas' },
-      { name: 'Boing Mango', price: 30, category: 'Bebidas' }
-    ],
-    'Agua': [
-      { name: 'Agua mineral', price: 25, category: 'Bebidas' },
-      { name: 'Agua natural (1lt)', price: 25, category: 'Bebidas' },
-      { name: 'Jarra de agua 1lt (tamarindo)', price: 45, category: 'Bebidas' },
-      { name: 'Jarra de agua 2lts (tamarindo)', price: 55, category: 'Bebidas' },
-      { name: 'Jarra de agua 3lts (tamarindo)', price: 80, category: 'Bebidas' }
-    ],
-    'Cerveza': [
-      { name: 'Cerveza corona/victoria', price: 40, category: 'Bebidas' },
-      { name: 'Michelada', price: 55, category: 'Bebidas' },
-      { name: 'Cubana', price: 40, category: 'Bebidas' },
-      { name: 'Clamato', price: 55, category: 'Bebidas' }
-    ],
-    'Otros': [
-      { name: 'Sidral (aga)', price: 30, category: 'Bebidas' },
-      { name: 'Rusa', price: 45, category: 'Bebidas' }
-    ],
-    'Tacos': [
-      { name: 'Tacos de Asada', price: 60, category: 'Platillos' },
-      { name: 'Tacos de Pastor', price: 55, category: 'Platillos' }
-    ],
-    'Tortas': [
-      { name: 'Torta de Jamón', price: 45, category: 'Platillos' },
-      { name: 'Torta Cubana', price: 65, category: 'Platillos' }
-    ],
-    'Quesadillas': [
-      { name: 'Quesadilla Sencilla', price: 35, category: 'Platillos' },
-      { name: 'Quesadilla con Carne', price: 50, category: 'Platillos' }
-    ],
-    'Helados': [
-      { name: 'Helado de Vainilla', price: 25, category: 'Postres' },
-      { name: 'Helado de Chocolate', price: 25, category: 'Postres' }
-    ],
-    'Pasteles': [
-      { name: 'Pastel de Chocolate', price: 40, category: 'Postres' }
-    ],
-    'Flanes': [
-      { name: 'Flan Napolitano', price: 35, category: 'Postres' }
-    ]
-  };
+  // Cargar productos del backend
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch(API_ENDPOINTS.products);
+        if (response.ok) {
+          const data = await response.json();
+          setProducts(data.filter(p => p.available));
+        }
+      } catch (error) {
+        console.error('Error al cargar productos:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  // Obtener categorías únicas de los productos
+  const categories = ['Todas', ...new Set(products.map(p => p.category))];
+
+  // Filtrar productos por categoría y búsqueda
+  const filteredProducts = products.filter(product => {
+    const matchesCategory = selectedCategory === 'Todas' || product.category === selectedCategory;
+    const matchesSearch = searchQuery.trim() === '' || 
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   const tables = Array.from({ length: 20 }, (_, i) => i + 1);
 
-  const bebidasGrouped = Object.entries(products).reduce((acc, [subcategory, items]) => {
-    if (categories.find((cat) => cat.name === 'Bebidas').subcategories.includes(subcategory)) {
-      acc[subcategory] = items.map((item) => item.name);
+  // Manejar selección de mesa y autocompletar si está ocupada
+  const handleTableSelect = (tableNum) => {
+    setSelectedTable(tableNum);
+    
+    // Buscar si la mesa está ocupada
+    const occupiedTable = activeTables.find(t => t.tableNumber === tableNum);
+    if (occupiedTable) {
+      // Autocompletar campos con datos de la mesa ocupada
+      setCustomerName(occupiedTable.customerName || '');
+      setNumberOfPeople(occupiedTable.numberOfPeople || 0);
+    } else {
+      // Si no está ocupada, limpiar los campos
+      setCustomerName('');
+      setNumberOfPeople(0);
     }
-    return acc;
-  }, {});
-
-  const platillosSizes = ['Chico', 'Mediano', 'Grande'];
-
-  // Search helper: collect matching products across all categories
-  const searchResults = (() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return [];
-    const results = [];
-    Object.values(products).forEach(arr => {
-      arr.forEach(p => {
-        if (p.name.toLowerCase().includes(q)) results.push(p);
-      });
-    });
-    return results;
-  })();
+  };
+  
+  // Verificar si la mesa seleccionada está ocupada
+  const isSelectedTableOccupied = selectedTable && activeTables.some(t => t.tableNumber === selectedTable);
 
   const handleSendOrder = () => {
     if (!selectedTable) {
@@ -138,12 +121,61 @@ function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable,
     setTokenPromptVisible(false);
   };
 
-  const confirmOrder = () => {
-    alert(`Pedido enviado a cocina\nMesa: ${selectedTable}\nToken: ${token}\nTotal: $${total.toFixed(2)}`);
-    setShowConfirmDialog(false);
-    setCart([]);
-    setCustomerName('');
-    setSpecialNotes('');
+  const confirmOrder = async () => {
+    try {
+      // Verificar que tenemos el token
+      if (!token || token.trim().length === 0) {
+        alert('Error: Token de mesero no disponible. Por favor intenta de nuevo.');
+        setShowConfirmDialog(false);
+        return;
+      }
+
+      const orderData = {
+        tableNumber: selectedTable,
+        customerName: customerName,
+        numberOfPeople: numberOfPeople || 0,
+        items: cart.map(item => ({
+          productId: item.id,
+          productName: item.name,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        observations: specialNotes,
+        total: total,
+        token: token // Enviar token en el body también
+      };
+
+      // Crear la orden (ahora automáticamente crea/actualiza la mesa)
+      const orderResponse = await fetch(API_ENDPOINTS.orders, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-waiter-token': token
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      if (orderResponse.ok) {
+        const createdOrder = await orderResponse.json();
+        
+        alert(`¡Pedido enviado exitosamente!\nMesa: ${selectedTable}\nTotal: $${total.toFixed(2)}`);
+        setShowConfirmDialog(false);
+        setCart([]);
+        setCustomerName('');
+        setSpecialNotes('');
+        setSelectedTable(null);
+        setNumberOfPeople(0);
+        // Limpiar el token para que se pida nuevamente en el siguiente pedido
+        setToken('');
+        setWaiterName('');
+      } else {
+        const error = await orderResponse.json();
+        alert(`Error al enviar el pedido (${orderResponse.status}):\n${error.message || 'Intenta de nuevo'}`);
+      }
+    } catch (error) {
+      console.error('Error al enviar pedido:', error);
+      alert('Error de conexión. Verifica tu conexión a internet.');
+    }
   };
 
   return (
@@ -176,8 +208,12 @@ function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable,
             </div>
             {tokenError && <div style={{ color: 'red', fontSize: 12, marginBottom: 8 }}>{tokenError}</div>}
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <button onClick={() => setTokenPromptVisible(false)} style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #e5e5e5', background: 'white' }}>Cancelar</button>
-              <button onClick={confirmTokenAndProceed} style={{ flex: 1, padding: 10, borderRadius: 8, background: '#000', color: '#fff', border: 'none' }}>Confirmar</button>
+              <button onClick={() => {
+                setTokenPromptVisible(false);
+                setLocalToken('');
+                setTokenError('');
+              }} style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #e5e5e5', background: 'white', cursor: 'pointer', fontWeight: '500' }}>Cancelar</button>
+              <button onClick={confirmTokenAndProceed} style={{ flex: 1, padding: 10, borderRadius: 8, background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: '600', boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)' }}>Confirmar</button>
             </div>
           </div>
         </div>
@@ -265,12 +301,20 @@ function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable,
                   flex: 1,
                   padding: '12px',
                   borderRadius: '8px',
-                  background: '#000',
+                  background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
                   color: 'white',
                   border: 'none',
                   cursor: 'pointer',
                   fontSize: '14px',
-                  fontWeight: '600'
+                  fontWeight: '600',
+                  boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'scale(1.02)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'scale(1)';
                 }}
               >
                 Confirmar y Enviar
@@ -323,256 +367,149 @@ function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable,
           }}>
             {categories.map(cat => (
               <button
-                key={cat.name}
+                key={cat}
                 onClick={() => {
-                  setSelectedCategory(cat.name);
+                  setSelectedCategory(cat);
                   setSelectedSubcategory(null);
                 }}
                 style={{
                   padding: '10px 20px',
                   borderRadius: '8px',
                   border: 'none',
-                  background: selectedCategory === cat.name ? '#000000' : '#f5f5f5',
-                  color: selectedCategory === cat.name ? '#ffffff' : '#111',
+                  background: selectedCategory === cat ? 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)' : '#f5f5f5',
+                  color: selectedCategory === cat ? '#ffffff' : '#111',
                   fontSize: '14px',
                   fontWeight: '600',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: selectedCategory === cat ? '0 4px 12px rgba(249, 115, 22, 0.3)' : 'none'
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedCategory !== cat) {
+                    e.target.style.background = '#e5e5e5';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedCategory !== cat) {
+                    e.target.style.background = '#f5f5f5';
+                  }
                 }}
               >
-                {cat.name}
+                {cat}
               </button>
             ))}
           </div>
 
-          {/* Subcategorías */}
-          {categories.find(c => c.name === selectedCategory)?.subcategories.length > 0 && (
-            <div style={{
-              marginBottom: '24px',
-              paddingBottom: '20px',
-              borderBottom: '1px solid #e5e5e5'
-            }}>
-              <div style={{
-                fontSize: '12px',
-                color: '#666',
-                marginBottom: '12px',
-                fontWeight: '600',
-                textTransform: 'uppercase'
-              }}>
-                Selecciona una opción
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {categories.find(c => c.name === selectedCategory).subcategories.map(sub => (
-                  <button
-                    key={sub}
-                    onClick={() => setSelectedSubcategory(sub)}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: '6px',
-                      border: selectedSubcategory === sub ? '2px solid #000' : '1px solid #e5e5e5',
-                      background: selectedSubcategory === sub ? '#f9f9f9' : 'white',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                      fontWeight: selectedSubcategory === sub ? '600' : '400'
-                    }}
-                  >
-                    {sub}
-                  </button>
-                ))}
-              </div>
+          {/* Indicador de carga */}
+          {loading && (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              Cargando productos...
             </div>
           )}
 
           {/* Productos */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-            gap: '16px'
-          }}>
-            {searchQuery.trim() ? (
-              // Render search results (flat list)
-              searchResults.length === 0 ? (
-                <div style={{ gridColumn: '1/-1', color: '#666', padding: 16 }}>No se encontraron productos para "{searchQuery}"</div>
+          {!loading && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              gap: '16px'
+            }}>
+              {filteredProducts.length === 0 ? (
+                <div style={{ 
+                  gridColumn: '1/-1', 
+                  textAlign: 'center', 
+                  color: '#666', 
+                  padding: '40px',
+                  fontSize: '14px'
+                }}>
+                  {searchQuery ? `No se encontraron productos para "${searchQuery}"` : 'No hay productos disponibles'}
+                </div>
               ) : (
-                searchResults.map((product, idx) => (
-                  <div key={idx} style={{
+                filteredProducts.map((product) => (
+                  <div key={product.id} style={{
                     background: 'white',
                     border: '1px solid #e5e5e5',
-                    borderRadius: '8px',
-                    padding: '16px'
-                  }}>
-                    <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>{product.name}</div>
-                    {product.price != null && <div style={{ fontSize: '16px', fontWeight: '700', color: '#000', marginBottom: '12px' }}>${product.price.toFixed(2)}</div>}
-                    <button onClick={() => addToCart(product)} style={{
-                      width: '100%',
-                      padding: '8px',
-                      borderRadius: '6px',
-                      background: '#000',
-                      color: 'white',
-                      border: 'none',
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      cursor: 'pointer'
-                    }}>+ Agregar</button>
+                    borderRadius: '12px',
+                    padding: '16px',
+                    transition: 'all 0.2s',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(249, 115, 22, 0.15)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                  >
+                    <div style={{ 
+                      fontSize: '15px', 
+                      fontWeight: '600', 
+                      marginBottom: '4px',
+                      color: '#111'
+                    }}>
+                      {product.name}
+                    </div>
+                    {product.description && (
+                      <div style={{ 
+                        fontSize: '12px', 
+                        color: '#666', 
+                        marginBottom: '12px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical'
+                      }}>
+                        {product.description}
+                      </div>
+                    )}
+                    <div style={{ 
+                      fontSize: '18px', 
+                      fontWeight: '700', 
+                      color: '#f97316', 
+                      marginBottom: '12px'
+                    }}>
+                      ${product.price.toFixed(2)}
+                    </div>
+                    <button 
+                      onClick={() => addToCart(product)} 
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        borderRadius: '8px',
+                        background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+                        color: 'white',
+                        border: 'none',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s',
+                        boxShadow: '0 2px 8px rgba(249, 115, 22, 0.3)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'scale(1.02)';
+                        e.target.style.boxShadow = '0 4px 12px rgba(249, 115, 22, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'scale(1)';
+                        e.target.style.boxShadow = '0 2px 8px rgba(249, 115, 22, 0.3)';
+                      }}
+                    >
+                      <Plus size={16} />
+                      Agregar
+                    </button>
                   </div>
                 ))
-              )
-            ) : (
-              // Default rendering by category/subcategory
-              <>
-                {selectedCategory === 'Bebidas' && (
-                  // If a subcategory is selected, show only that one, otherwise show all
-                  (selectedSubcategory ? [[selectedSubcategory, bebidasGrouped[selectedSubcategory] || []]] : Object.entries(bebidasGrouped)).map(([subcategory, flavors], idx) => (
-                    <div key={subcategory + '-' + idx} style={{
-                      background: 'white',
-                      border: '1px solid #e5e5e5',
-                      borderRadius: '8px',
-                      padding: '16px'
-                    }}>
-                      <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
-                        {subcategory}
-                      </div>
-                      <div style={{ marginBottom: '12px' }}>
-                        <select
-                          onChange={(e) => setSelectedFlavor(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '8px',
-                            borderRadius: '6px',
-                            border: '1px solid #e5e5e5',
-                            fontSize: '14px'
-                          }}
-                        >
-                          <option value="">Seleccionar sabor</option>
-                          {flavors.map((flavor, flavorIdx) => (
-                            <option key={flavorIdx} value={flavor}>{flavor}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <button
-                        onClick={() => {
-                          if (selectedFlavor) {
-                            addToCart({ name: selectedFlavor, price: 30, category: 'Bebidas' });
-                          } else {
-                            alert('Por favor seleccione un sabor');
-                          }
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '8px',
-                          borderRadius: '6px',
-                          background: '#000',
-                          color: 'white',
-                          border: 'none',
-                          fontSize: '13px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px'
-                        }}
-                      >
-                        + Agregar
-                      </button>
-                    </div>
-                  ))
-                )}
-
-                {selectedCategory === 'Platillos' && (
-                  // Determine which subcategories to render: selected only, or all
-                  (selectedSubcategory ? [selectedSubcategory] : categories.find(c => c.name === 'Platillos').subcategories).map((sub, subIdx) => (
-                    (products[sub] || []).map((product, idx) => (
-                      <div key={sub + '-' + idx} style={{
-                        background: 'white',
-                        border: '1px solid #e5e5e5',
-                        borderRadius: '8px',
-                        padding: '16px'
-                      }}>
-                        <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
-                          {product.name}
-                        </div>
-                        <div style={{ marginBottom: '12px' }}>
-                          <select
-                            style={{
-                              width: '100%',
-                              padding: '8px',
-                              borderRadius: '6px',
-                              border: '1px solid #e5e5e5',
-                              fontSize: '14px'
-                            }}
-                          >
-                            {platillosSizes.map((size, sizeIdx) => (
-                              <option key={sizeIdx} value={size}>{size}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <button
-                          onClick={() => addToCart(product)}
-                          style={{
-                            width: '100%',
-                            padding: '8px',
-                            borderRadius: '6px',
-                            background: '#000',
-                            color: 'white',
-                            border: 'none',
-                            fontSize: '13px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px'
-                          }}
-                        >
-                          + Agregar
-                        </button>
-                      </div>
-                    ))
-                  ))
-                )}
-
-                {selectedCategory === 'Postres' && (
-                  (selectedSubcategory ? [selectedSubcategory] : categories.find(c => c.name === 'Postres').subcategories).map((sub, subIdx) => (
-                    (products[sub] || []).map((product, idx) => (
-                      <div key={sub + '-' + idx} style={{
-                        background: 'white',
-                        border: '1px solid #e5e5e5',
-                        borderRadius: '8px',
-                        padding: '16px'
-                      }}>
-                        <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
-                          {product.name}
-                        </div>
-                        <div style={{ fontSize: '16px', fontWeight: '700', color: '#000', marginBottom: '12px' }}>
-                          ${product.price.toFixed(2)}
-                        </div>
-                        <button
-                          onClick={() => addToCart(product)}
-                          style={{
-                            width: '100%',
-                            padding: '8px',
-                            borderRadius: '6px',
-                            background: '#000',
-                            color: 'white',
-                            border: 'none',
-                            fontSize: '13px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px'
-                          }}
-                        >
-                          + Agregar
-                        </button>
-                      </div>
-                    ))
-                  ))
-                )}
-              </>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Panel derecho - Pedido */}
@@ -609,23 +546,43 @@ function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable,
               overflowY: 'auto',
               padding: '4px'
             }}>
-              {tables.map(table => (
-                <button
-                  key={table}
-                  onClick={() => setSelectedTable(table)}
-                  style={{
-                    padding: '10px',
-                    borderRadius: '6px',
-                    border: selectedTable === table ? '2px solid #000' : '1px solid #e5e5e5',
-                    background: selectedTable === table ? '#f0f0f0' : 'white',
-                    fontSize: '14px',
-                    fontWeight: selectedTable === table ? '700' : '400',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {table}
-                </button>
-              ))}
+              {tables.map(table => {
+                const isOccupied = activeTables.some(t => t.tableNumber === table);
+                return (
+                  <button
+                    key={table}
+                    onClick={() => handleTableSelect(table)}
+                    style={{
+                      padding: '10px',
+                      borderRadius: '6px',
+                      border: selectedTable === table ? '2px solid #f97316' : '1px solid #e5e5e5',
+                      background: selectedTable === table 
+                        ? '#fff7ed' 
+                        : isOccupied 
+                          ? '#fef3c7' 
+                          : 'white',
+                      fontSize: '14px',
+                      fontWeight: selectedTable === table ? '700' : '400',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {table}
+                    {isOccupied && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '2px',
+                        right: '2px',
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        background: '#f97316'
+                      }} />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -639,19 +596,65 @@ function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable,
               color: '#666'
             }}>
               Cliente <span style={{ color: 'red' }}>*</span>
+              {isSelectedTableOccupied && (
+                <span style={{ fontSize: '11px', fontWeight: '400', color: '#f97316', marginLeft: '8px' }}>
+                  (no editable)
+                </span>
+              )}
             </label>
             <input
               type="text"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder="Nombre del cliente"
+              disabled={isSelectedTableOccupied}
               style={{
                 width: '100%',
                 padding: '10px 12px',
                 borderRadius: '6px',
                 border: '1px solid #e5e5e5',
                 fontSize: '14px',
-                outline: 'none'
+                outline: 'none',
+                background: isSelectedTableOccupied ? '#f9f9f9' : 'white',
+                cursor: isSelectedTableOccupied ? 'not-allowed' : 'text',
+                color: isSelectedTableOccupied ? '#666' : '#000'
+              }}
+            />
+          </div>
+
+          {/* Número de personas */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '13px',
+              fontWeight: '600',
+              marginBottom: '8px',
+              color: '#666'
+            }}>
+              Número de Personas
+              {isSelectedTableOccupied && (
+                <span style={{ fontSize: '11px', fontWeight: '400', color: '#f97316', marginLeft: '8px' }}>
+                  (no editable)
+                </span>
+              )}
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={numberOfPeople}
+              onChange={(e) => setNumberOfPeople(parseInt(e.target.value) || 0)}
+              placeholder="Número de comensales"
+              disabled={isSelectedTableOccupied}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: '6px',
+                border: '1px solid #e5e5e5',
+                fontSize: '14px',
+                outline: 'none',
+                background: isSelectedTableOccupied ? '#f9f9f9' : 'white',
+                cursor: isSelectedTableOccupied ? 'not-allowed' : 'text',
+                color: isSelectedTableOccupied ? '#666' : '#000'
               }}
             />
           </div>
@@ -674,16 +677,18 @@ function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable,
                   setSpecialNotes(e.target.value);
                 }
               }}
-              placeholder="ej. sin cebolla, término medio"
+              placeholder="ej. sin cebolla, término medio, extra picante"
               style={{
                 width: '100%',
-                padding: '10px 12px',
-                borderRadius: '6px',
+                padding: '12px 14px',
+                borderRadius: '8px',
                 border: '1px solid #e5e5e5',
                 fontSize: '14px',
                 outline: 'none',
-                minHeight: '60px',
-                resize: 'none'
+                minHeight: '100px',
+                resize: 'vertical',
+                fontFamily: 'inherit',
+                lineHeight: '1.5'
               }}
             />
             <div style={{ fontSize: '11px', color: '#999', marginTop: '4px', textAlign: 'right' }}>
@@ -790,13 +795,19 @@ function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable,
                 width: '100%',
                 padding: '12px',
                 borderRadius: '8px',
-                background: cart.length === 0 || !selectedTable || !customerName ? '#e5e5e5' : '#000',
+                background: cart.length === 0 || !selectedTable || !customerName 
+                  ? '#e5e5e5' 
+                  : 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
                 color: cart.length === 0 || !selectedTable || !customerName ? '#999' : 'white',
                 border: 'none',
                 cursor: cart.length === 0 || !selectedTable || !customerName ? 'not-allowed' : 'pointer',
                 fontSize: '14px',
                 fontWeight: '600',
-                marginBottom: '12px'
+                marginBottom: '12px',
+                boxShadow: cart.length === 0 || !selectedTable || !customerName 
+                  ? 'none' 
+                  : '0 4px 12px rgba(249, 115, 22, 0.3)',
+                transition: 'all 0.2s'
               }}
             >
               ✓ Enviar Pedido a Cocina
@@ -825,6 +836,7 @@ function CrearOrden({ cart, setCart, addToCart, selectedTable, setSelectedTable,
                 setCart([]);
                 setSelectedTable(null);
                 setCustomerName('');
+                setNumberOfPeople(0);
                 setSpecialNotes('');
               }}
               style={{
@@ -863,6 +875,7 @@ export default function POSInterface() {
   const [cart, setCart] = useState([]);
   const [selectedTable, setSelectedTable] = useState(null);
   const [customerName, setCustomerName] = useState('');
+  const [numberOfPeople, setNumberOfPeople] = useState(0);
   const [specialNotes, setSpecialNotes] = useState('');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
@@ -889,67 +902,219 @@ export default function POSInterface() {
   // No initial login screen. The UI is available immediately; token will be requested when confirming an order.
 
   return (
-    <div style={{ display: 'flex', height: '100vh', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', background: '#f5f5f5' }}>
-      <div style={{ flex: 1, background: '#fff', padding: 20, overflowY: 'auto', borderRight: '1px solid #e5e5e5' }}>
-        {/* Header (preserve) */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid #e5e5e5' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><User size={18} /></div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', background: '#f5f5f5' }}>
+      {/* Header unificado */}
+      <div style={{ 
+        background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+        padding: '24px 32px',
+        borderBottom: '1px solid rgba(255,255,255,0.1)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ 
+              width: 48, 
+              height: 48, 
+              borderRadius: '12px', 
+              background: 'rgba(255,255,255,0.2)',
+              backdropFilter: 'blur(10px)',
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            }}>
+              <ShoppingCart size={24} color='white' />
+            </div>
             <div>
-              <div style={{ fontWeight: 700 }}>Mesero: {waiterName}</div>
-              <div style={{ fontSize: 12, color: '#666' }}>{showTokenInHeader ? `Token: ${token}` : 'Token: •••••'}</div>
+              <h1 style={{ 
+                margin: 0, 
+                fontSize: '28px', 
+                fontWeight: '700', 
+                color: 'white',
+                letterSpacing: '-0.5px'
+              }}>
+                Pedidos
+              </h1>
+              <p style={{ 
+                margin: 0, 
+                fontSize: '14px', 
+                color: 'rgba(255,255,255,0.8)',
+                marginTop: '4px'
+              }}>
+                Gestión de órdenes
+              </p>
             </div>
           </div>
-          <button onClick={() => { setToken(''); setWaiterName(''); sessionStorage.removeItem('waiterName'); navigate('/'); }} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e5e5e5', background: 'white', cursor: 'pointer', fontWeight: 600 }}>Salir</button>
+          <button 
+            onClick={() => { setToken(''); setWaiterName(''); sessionStorage.removeItem('waiterName'); navigate('/'); }} 
+            style={{ 
+              padding: '10px 20px', 
+              borderRadius: '8px', 
+              border: 'none',
+              background: 'rgba(255,255,255,0.2)',
+              backdropFilter: 'blur(10px)',
+              color: 'white',
+              cursor: 'pointer', 
+              fontWeight: '600',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            }}
+            onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.3)'}
+            onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.2)'}
+          >
+            <LogOut size={16} />
+            Salir
+          </button>
         </div>
-
-        {/* Tab bar (preserve) */}
-        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '8px 12px', background: '#f9f9f9', borderBottom: '1px solid #e5e5e5', marginBottom: 20, borderRadius: 8 }}>
-          <button onClick={() => setActiveTab('crear-orden')} style={{ padding: '8px 14px', borderRadius: 14, background: activeTab === 'crear-orden' ? '#e6f0ff' : 'transparent', border: activeTab === 'crear-orden' ? '1px solid #cfe0ff' : 'none', display: 'inline-flex', gap: 8, alignItems: 'center', cursor: 'pointer', fontWeight: activeTab === 'crear-orden' ? 600 : 400 }}><span style={{ fontSize: 16 }}>🛒</span><span>Crear Orden</span></button>
-          <button onClick={() => { setActiveTab('ver-ordenes'); setVerOrdersSignal(s => s + 1); }} style={{ padding: '8px 14px', borderRadius: 14, background: activeTab === 'ver-ordenes' ? '#e6f0ff' : 'transparent', border: activeTab === 'ver-ordenes' ? '1px solid #cfe0ff' : 'none', display: 'inline-flex', gap: 8, alignItems: 'center', cursor: 'pointer', fontWeight: activeTab === 'ver-ordenes' ? 600 : 400 }}><span style={{ fontSize: 16 }}>👁️</span><span>Ver Órdenes</span></button>
-          <button onClick={() => setActiveTab('cuenta-mesa')} style={{ padding: '8px 14px', borderRadius: 14, background: activeTab === 'cuenta-mesa' ? '#e6f0ff' : 'transparent', border: activeTab === 'cuenta-mesa' ? '1px solid #cfe0ff' : 'none', display: 'inline-flex', gap: 8, alignItems: 'center', cursor: 'pointer', fontWeight: activeTab === 'cuenta-mesa' ? 600 : 400 }}><span style={{ fontSize: 16 }}>🎟️</span><span>Cuenta Mesa</span></button>
-          <button onClick={() => setActiveTab('cerrar-mesa')} style={{ padding: '8px 14px', borderRadius: 14, background: activeTab === 'cerrar-mesa' ? '#e6f0ff' : 'transparent', border: activeTab === 'cerrar-mesa' ? '1px solid #cfe0ff' : 'none', display: 'inline-flex', gap: 8, alignItems: 'center', cursor: 'pointer', fontWeight: activeTab === 'cerrar-mesa' ? 600 : 400 }}><span style={{ fontSize: 16 }}>💲</span><span>Cerrar Mesa</span></button>
-          <button onClick={() => setActiveTab('solicitar-cancelacion')} style={{ padding: '8px 14px', borderRadius: 14, background: activeTab === 'solicitar-cancelacion' ? '#e6f0ff' : 'transparent', border: activeTab === 'solicitar-cancelacion' ? '1px solid #cfe0ff' : 'none', display: 'inline-flex', gap: 8, alignItems: 'center', cursor: 'pointer', fontWeight: activeTab === 'solicitar-cancelacion' ? 600 : 400 }}><span style={{ fontSize: 16 }}>❌</span><span>Cancelación</span></button>
-        </div>
-
-        {/* Content area */}
-        {activeTab === 'ver-ordenes' ? (
-          <VerOrdenes currentWaiter={waiterName} openSignal={verOrdersSignal} />
-        ) : activeTab === 'cuenta-mesa' ? (
-          <CuentaMesa />
-        ) : activeTab === 'cerrar-mesa' ? (
-          <CerrarMesa />
-        ) : activeTab === 'solicitar-cancelacion' ? (
-          <SolicitarCancelacion />
-        ) : (
-          <CrearOrden
-            cart={cart}
-            setCart={setCart}
-            addToCart={addToCart}
-            selectedTable={selectedTable}
-            setSelectedTable={setSelectedTable}
-            customerName={customerName}
-            setCustomerName={setCustomerName}
-            specialNotes={specialNotes}
-            setSpecialNotes={setSpecialNotes}
-            total={total}
-            showConfirmDialog={showConfirmDialog}
-            setShowConfirmDialog={setShowConfirmDialog}
-            orderNumber={orderNumber}
-            setOrderNumber={setOrderNumber}
-            token={token}
-            setToken={setToken}
-            setWaiterName={setWaiterName}
-            waiterName={waiterName}
-            showTokenInHeader={showTokenInHeader}
-            setShowTokenInHeader={setShowTokenInHeader}
-            incrementQuantity={incrementQuantity}
-            decrementQuantity={decrementQuantity}
-            removeFromCart={removeFromCart}
-          />
-        )}
       </div>
 
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <div style={{ 
+          flex: 1, 
+          background: '#fff', 
+          padding: activeTab === 'mesas-activas' ? '20px' : '20px 32px', 
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+
+          {/* Tab bar */}
+          <div style={{ 
+            display: 'flex', 
+            gap: '12px', 
+            marginBottom: '24px',
+            borderBottom: '2px solid #f0f0f0',
+            paddingBottom: '0'
+          }}>
+            <button 
+              onClick={() => setActiveTab('crear-orden')} 
+              style={{ 
+                padding: '12px 20px', 
+                background: 'transparent',
+                border: 'none',
+                borderBottom: activeTab === 'crear-orden' ? '3px solid #f97316' : '3px solid transparent',
+                color: activeTab === 'crear-orden' ? '#f97316' : '#666',
+                cursor: 'pointer', 
+                fontWeight: activeTab === 'crear-orden' ? 600 : 400,
+                fontSize: '14px',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <ShoppingCart size={18} />
+              Crear Orden
+            </button>
+            <button 
+              onClick={() => { setActiveTab('ver-ordenes'); setVerOrdersSignal(s => s + 1); }} 
+              style={{ 
+                padding: '12px 20px', 
+                background: 'transparent',
+                border: 'none',
+                borderBottom: activeTab === 'ver-ordenes' ? '3px solid #f97316' : '3px solid transparent',
+                color: activeTab === 'ver-ordenes' ? '#f97316' : '#666',
+                cursor: 'pointer', 
+                fontWeight: activeTab === 'ver-ordenes' ? 600 : 400,
+                fontSize: '14px',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <Calendar size={18} />
+              Ver Órdenes
+            </button>
+            <button 
+              onClick={() => setActiveTab('mesas-activas')} 
+              style={{ 
+                padding: '12px 20px', 
+                background: 'transparent',
+                border: 'none',
+                borderBottom: activeTab === 'mesas-activas' ? '3px solid #f97316' : '3px solid transparent',
+                color: activeTab === 'mesas-activas' ? '#f97316' : '#666',
+                cursor: 'pointer', 
+                fontWeight: activeTab === 'mesas-activas' ? 600 : 400,
+                fontSize: '14px',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <DollarSign size={18} />
+              Mesas Activas
+            </button>
+            <button 
+              onClick={() => setActiveTab('solicitar-cancelacion')} 
+              style={{ 
+                padding: '12px 20px', 
+                background: 'transparent',
+                border: 'none',
+                borderBottom: activeTab === 'solicitar-cancelacion' ? '3px solid #f97316' : '3px solid transparent',
+                color: activeTab === 'solicitar-cancelacion' ? '#f97316' : '#666',
+                cursor: 'pointer', 
+                fontWeight: activeTab === 'solicitar-cancelacion' ? 600 : 400,
+                fontSize: '14px',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              ❌
+              Cancelación
+            </button>
+          </div>
+
+          {/* Content area */}
+          <div style={{ 
+            flex: activeTab === 'mesas-activas' ? 1 : 'initial',
+            display: activeTab === 'mesas-activas' ? 'flex' : 'block',
+            minHeight: 0
+          }}>
+            {activeTab === 'ver-ordenes' ? (
+              <VerOrdenes currentWaiter={waiterName} openSignal={verOrdersSignal} waiterToken={token} />
+            ) : activeTab === 'mesas-activas' ? (
+              <MesasActivas />
+            ) : activeTab === 'solicitar-cancelacion' ? (
+              <SolicitarCancelacion />
+            ) : (
+              <CrearOrden
+              cart={cart}
+              setCart={setCart}
+              addToCart={addToCart}
+              selectedTable={selectedTable}
+              setSelectedTable={setSelectedTable}
+              customerName={customerName}
+              setCustomerName={setCustomerName}
+              numberOfPeople={numberOfPeople}
+              setNumberOfPeople={setNumberOfPeople}
+              specialNotes={specialNotes}
+              setSpecialNotes={setSpecialNotes}
+              total={total}
+              showConfirmDialog={showConfirmDialog}
+              setShowConfirmDialog={setShowConfirmDialog}
+              orderNumber={orderNumber}
+              setOrderNumber={setOrderNumber}
+              token={token}
+              setToken={setToken}
+              setWaiterName={setWaiterName}
+              waiterName={waiterName}
+              showTokenInHeader={showTokenInHeader}
+              setShowTokenInHeader={setShowTokenInHeader}
+              incrementQuantity={incrementQuantity}
+              decrementQuantity={decrementQuantity}
+              removeFromCart={removeFromCart}
+            />
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -12,6 +12,7 @@ import ordersRoutes from "./routes/orders.routes.js";
 import accountsRoutes from "./routes/accounts.routes.js";
 import kitchenRoutes from "./routes/kitchen.routes.js";
 import ticketsRoutes from "./routes/tickets.routes.js";
+import tablesRoutes from "./routes/tables.routes.js";
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use("/api/orders", ordersRoutes);
 app.use("/api/accounts", accountsRoutes);
 app.use("/api/kitchen", kitchenRoutes);
 app.use("/api/tickets", ticketsRoutes);
+app.use("/api/tables", tablesRoutes);
 
 app.get("/", (req, res) => {
   res.send("Ey que paso, llego el q anima");
@@ -34,10 +36,12 @@ const PORT = process.env.PORT || 4000;
 
 import { ensureAdminExists } from "./server/initAdmin.js";
 import { initProducts } from "./init/initProducts.js";
+import { updateProductCategories } from "./scripts/updateProductCategories.js";
 
 
 ensureAdminExists();
 await initProducts();
+await updateProductCategories();
 
 app.listen(PORT, () => {
   console.log(`Ya jalo, eñ servidor anda corriendo en http://localhost:${PORT}`);

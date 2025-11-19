@@ -10,4 +10,5 @@ export const API_ENDPOINTS = {
   accounts: `${API_URL}/accounts`,
   kitchen: `${API_URL}/kitchen`,
   tickets: `${API_URL}/tickets`,
+  tables: `${API_URL}/tables`,
 }

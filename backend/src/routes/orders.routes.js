@@ -10,13 +10,14 @@ import { waiterTokenAuth, adminAuth } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
+// Rutas específicas primero (antes de las rutas con parámetros dinámicos)
+router.get("/public/list", listOrders);
+router.get("/admin/all", adminAuth, listOrders);
+
+// Rutas protegidas
 router.post("/", waiterTokenAuth, createOrder);
-router.get("/", waiterTokenAuth, listOrders);
 router.get("/:id", waiterTokenAuth, getOrderById);
 router.put("/:id", waiterTokenAuth, updateOrder);
 router.delete("/:id", waiterTokenAuth, deleteOrder);
-
-
-router.get("/admin/all", adminAuth, listOrders);
 
 export default router;

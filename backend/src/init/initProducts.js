@@ -12,7 +12,7 @@ export async function initProducts() {
       name: "Mojarra Frita",
       description: "Mojarra frita en aceite",
       price: 85,
-      category: "Comidas",
+      category: "Platos Fuertes",
       available: true,
       createdAt: now,
       updatedAt: now,
